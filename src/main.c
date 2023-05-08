@@ -1,8 +1,17 @@
-#include <stdio.h>
+#include "main.h"
+#include "engine/gameloop.h"
+
+
+
+
+// TODO fix absolute paths
+
+
 
 
 int main()
 {
-    printf("works\n");
-    return 0;
+    DBG("[*] debug mode active\n");
+
+    return gameLoop();
 }
