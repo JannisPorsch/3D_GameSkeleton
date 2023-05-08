@@ -1,0 +1,6 @@
+[submodule "dependencies/GLFW"]
+	path = dependencies/GLFW
+	url = https://github.com/glfw/glfw.git
+[submodule "dependencies/CGLM"]
+	path = dependencies/CGLM
+	url = https://github.com/recp/cglm.git
