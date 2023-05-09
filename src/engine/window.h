@@ -24,7 +24,7 @@ typedef struct _WINDOW
 
 
 
-u8 createWindow(const char* title, int width, int height, u8 fullscreen);
+u8 createWindow(const char* title, int width, int height);
 
 
 void windowUpdate();

@@ -2,6 +2,8 @@
 #include "main.h"
 #include "options.h"
 
+#include "io/input.h"
+
 
 
 
@@ -19,7 +21,7 @@ static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 
 
-u8 createWindow(const char* title, int width, int height, u8 fullscreen)
+u8 createWindow(const char* title, int width, int height)
 {
     if(!title || width <= 0 || height <= 0)
     {
@@ -42,8 +44,11 @@ u8 createWindow(const char* title, int width, int height, u8 fullscreen)
         glfwInitialised = 1;
     }
 
-    if(fullscreen)
+    if(OPTION_STARTFULLSCREEN)
     {
+        mainWindow.width = width;
+        mainWindow.height = height;
+
         GLFWmonitor* mon = glfwGetPrimaryMonitor();
         if(!mon)
         {
@@ -93,7 +98,7 @@ u8 createWindow(const char* title, int width, int height, u8 fullscreen)
         return 0;
     }
 
-    mainWindow.fullscreen = fullscreen ? 1 : 0;
+    mainWindow.fullscreen = OPTION_STARTFULLSCREEN ? 1 : 0;
 
     glViewport(0, 0, width, height);
     glfwSetFramebufferSizeCallback(mainWindow.handle, framebuffer_size_callback);
@@ -104,6 +109,8 @@ u8 createWindow(const char* title, int width, int height, u8 fullscreen)
 
 void windowUpdate()
 {
+    if(isKeyPressed(KEY_F))
+        toggleFullscreen();
 }
 
 
