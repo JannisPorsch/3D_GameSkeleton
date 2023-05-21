@@ -1,8 +1,8 @@
 #include "window.h"
 #include "main.h"
 #include "options.h"
-
 #include "io/input.h"
+#include "render/camera.h"
 
 
 
@@ -90,6 +90,7 @@ u8 createWindow(const char* title, int width, int height)
     updateVSync();
 
     glfwSetInputMode(mainWindow.handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(mainWindow.handle, mouse_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -181,4 +182,5 @@ void updateVSync()
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
+    updateCameraProj(currentCamera);
 }

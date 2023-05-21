@@ -10,7 +10,7 @@
 
 
 int main()
-{
+{    
     DBG("[*] debug mode active\n");
 
     return gameLoop();

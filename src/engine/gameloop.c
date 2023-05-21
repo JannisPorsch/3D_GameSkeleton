@@ -2,12 +2,16 @@
 #include "main.h"
 #include "window.h"
 #include "io/input.h"
+#include "render/camera.h"
+#include "render/renderPipeline.h"
 
 
 
 
 static const char* TITLE = "3D_GameSkeleton";
 static const int WIDTH = 800, HEIGHT = 600;
+
+static CAMERA mainCam = { 0 };
 
 
 
@@ -16,8 +20,8 @@ static u8 gameInit();
 static void gameCleanup();
 
 
-static void update();
-static void render(double alpha);
+static void globalUpdate();
+static void globalRender(double alpha);
 
 
 
@@ -51,13 +55,13 @@ int gameLoop()
 
         while (accumulator >= dt)
         {
-            update();
+            globalUpdate();
             ups++;
             t += dt;
             accumulator -= dt;
         }
 
-        render(accumulator / dt);
+        globalRender(accumulator / dt);
         fps++;
 
         if(oneSecTimer >= 1.0)
@@ -80,6 +84,15 @@ static u8 gameInit()
     if(!createWindow(TITLE, WIDTH, HEIGHT))
         return 0;
     
+    cameraInit(&mainCam, (vec3){0.f, 0.f, 3.f});
+    currentCamera = &mainCam;
+
+    if(!renderPipelineInit())
+    {
+        windowCleanup();
+        return 0;
+    }
+    
     return 1;
 }
 
@@ -87,20 +100,23 @@ static u8 gameInit()
 static void gameCleanup()
 {
     windowCleanup();
+    renderPipelineCleanup();
 }
 
 
-static void update()
+static void globalUpdate()
 {
     inputUpdate();
     windowUpdate();
+    cameraUpdate(&mainCam);
 }
 
 
-static void render(double alpha)
+static void globalRender(double alpha)
 {
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    updateCameraView(currentCamera);
+    
+    render(alpha);
 
     glfwSwapBuffers(mainWindow.handle);
     glfwPollEvents();
