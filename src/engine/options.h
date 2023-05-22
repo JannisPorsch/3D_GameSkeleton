@@ -6,6 +6,7 @@
 
 #include "main.h"
 #include "io/input.h"
+#include "io/textureLoader.h"
 
 
 

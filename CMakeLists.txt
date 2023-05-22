@@ -49,8 +49,6 @@ FOREACH(dir ${SUBDIRS})
                 PUBLIC dependencies/stb_image
                 PUBLIC ${OPENGL_INCLUDE_DIRS}
             )
-
-            target_link_libraries(${PROJECT_NAME} ${tmp})
         ENDIF()
     ENDIF()
 ENDFOREACH()
@@ -59,4 +57,6 @@ ENDFOREACH()
 add_subdirectory(dependencies)
 
 
-target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES} glad glfw cglm stb_image)
+set(LIBRARIES "engine;render;io")
+
+target_link_libraries(${PROJECT_NAME} ${LIBRARIES} ${OPENGL_LIBRARIES} glad glfw cglm stb_image)

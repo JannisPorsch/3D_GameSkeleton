@@ -2,6 +2,7 @@
 #include "main.h"
 #include "window.h"
 #include "io/input.h"
+#include "io/textureLoader.h"
 #include "render/camera.h"
 #include "render/renderPipeline.h"
 

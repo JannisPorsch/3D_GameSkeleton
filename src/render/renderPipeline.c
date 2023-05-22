@@ -1,8 +1,8 @@
 #include "renderPipeline.h"
 #include "camera.h"
 #include <glad/glad.h>
-#include "shaderLoader.h"
-#include <stb_image.h>
+#include "io/shaderLoader.h"
+#include "io/textureLoader.h"
 
 
 
@@ -10,11 +10,11 @@
 static GLuint gBuffer;
 static GLuint gPosition, gNormal, gAlbedo, gDepthStencil;
 
-static GLuint locNormal, locAlbedo, locDepth;
+static GLuint locNormal, locAlbedo, locDepth, locSkyboxProjView;
 
-static GLuint deferredShader;
-static GLuint deferredVAO;
-static GLuint deferredVBO;
+static GLuint skyboxShader, deferredShader;
+static GLuint skyboxVAO, deferredVAO;
+static GLuint skyboxVBO, deferredVBO;
 static GLfloat deferredVertices[] =
 {
     // positions   // texCoords
@@ -26,6 +26,50 @@ static GLfloat deferredVertices[] =
     1.0f, -1.0f,  1.0f, 0.0f,
     1.0f,  1.0f,  1.0f, 1.0f
 };
+static GLfloat skyboxVertices[] =
+{
+    -1.0f,  1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+        1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+    -1.0f,  1.0f, -1.0f,
+        1.0f,  1.0f, -1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+        1.0f, -1.0f,  1.0f
+};
 
 
 
@@ -33,6 +77,7 @@ static GLfloat deferredVertices[] =
 static u8 loadShaders();
 static u8 loadGBuffer();
 static void geometryPass(double alpha);
+static void skyboxPass();
 static void deferredPass();
 
 
@@ -128,6 +173,30 @@ u8 renderPipelineInit()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    if(!textureInit())
+    {
+        ERROR("textureInit");
+        glDeleteFramebuffers(1, &gBuffer);
+        glDeleteTextures(1, &gPosition);
+        glDeleteTextures(1, &gNormal);
+        glDeleteTextures(1, &gAlbedo);
+        glDeleteTextures(1, &gDepthStencil);
+
+        glDeleteBuffers(1, &deferredVAO);
+        glDeleteBuffers(1, &deferredVBO);
+        glDeleteProgram(deferredShader);
+
+        return 0;
+    }
+
     return 1;
 }
 
@@ -143,12 +212,15 @@ void renderPipelineCleanup()
     glDeleteBuffers(1, &deferredVAO);
     glDeleteBuffers(1, &deferredVBO);
     glDeleteProgram(deferredShader);
+
+    textureCleanup();
 }
 
 
 void render(double alpha)
 {
     geometryPass(alpha);
+    skyboxPass();
     deferredPass();
 }
 
@@ -163,9 +235,18 @@ static u8 loadShaders()
         return 0;
     }
 
+    if(!shaderProgram(&skyboxShader, "../src/shader/skybox.vert", NULL, "../src/shader/skybox.frag"))
+    {
+        ERROR("shaderProgram()");
+        glDeleteProgram(deferredShader);
+        return 0;
+    }
+
     locNormal = glGetUniformLocation(deferredShader, "gNormal");
     locAlbedo = glGetUniformLocation(deferredShader, "gAlbedo");
     locDepth = glGetUniformLocation(deferredShader, "gDepth");
+
+    locSkyboxProjView = glGetUniformLocation(skyboxShader, "viewProj");
 
     return 1;
 }
@@ -241,6 +322,32 @@ static void geometryPass(double alpha)
     glEnable(GL_DEPTH_TEST);
 
     TEMPORARY();
+}
+
+
+static void skyboxPass()
+{
+    glDepthMask(GL_FALSE);
+    glDepthFunc(GL_LEQUAL);
+    
+    glUseProgram(skyboxShader);
+    
+    mat4 tmp;
+    glm_mat4_copy(currentCamera->view, tmp);
+    for(int i = 0; i < 3; i++)
+        tmp[3][i] = 0.f;
+    
+    glm_mat4_mul(currentCamera->proj, tmp, tmp);
+    
+    glUniformMatrix4fv(locSkyboxProjView, 1, GL_FALSE, (const float*)(tmp));
+
+    glBindVertexArray(skyboxVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texture_skybox);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
 }
 
 
