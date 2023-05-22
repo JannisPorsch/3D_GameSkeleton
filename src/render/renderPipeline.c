@@ -209,6 +209,10 @@ void renderPipelineCleanup()
     glDeleteTextures(1, &gAlbedo);
     glDeleteTextures(1, &gDepthStencil);
 
+    glDeleteBuffers(1, &skyboxVAO);
+    glDeleteBuffers(1, &skyboxVBO);
+    glDeleteProgram(skyboxShader);
+
     glDeleteBuffers(1, &deferredVAO);
     glDeleteBuffers(1, &deferredVBO);
     glDeleteProgram(deferredShader);
@@ -222,6 +226,18 @@ void render(double alpha)
     geometryPass(alpha);
     skyboxPass();
     deferredPass();
+}
+
+
+void updateGBuffer()
+{
+    glDeleteFramebuffers(1, &gBuffer);
+    glDeleteTextures(1, &gPosition);
+    glDeleteTextures(1, &gNormal);
+    glDeleteTextures(1, &gAlbedo);
+    glDeleteTextures(1, &gDepthStencil);
+
+    loadGBuffer();
 }
 
 

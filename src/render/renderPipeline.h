@@ -18,6 +18,9 @@ void renderPipelineCleanup();
 void render(double alpha);
 
 
+void updateGBuffer();
+
+
 
 
 #endif // !__RENDER_PIPELINE_H__

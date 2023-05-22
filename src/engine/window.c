@@ -3,6 +3,7 @@
 #include "options.h"
 #include "io/input.h"
 #include "render/camera.h"
+#include "render/renderPipeline.h"
 
 
 
@@ -183,4 +184,5 @@ static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
     updateCameraProj(currentCamera);
+    updateGBuffer();
 }
