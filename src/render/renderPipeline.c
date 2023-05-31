@@ -10,9 +10,9 @@
 static GLuint gBuffer;
 static GLuint gPosition, gNormal, gAlbedo, gDepthStencil;
 
-static GLuint locNormal, locAlbedo, locDepth, locSkyboxProjView;
+static GLuint locNormal, locAlbedo, locDepth, locSkyboxProjView, locTexture;
 
-static GLuint skyboxShader, deferredShader;
+static GLuint skyboxShader, deferredShader, textureShader;
 static GLuint skyboxVAO, deferredVAO;
 static GLuint skyboxVBO, deferredVBO;
 static GLfloat deferredVertices[] =
@@ -79,9 +79,10 @@ static u8 loadGBuffer();
 static void geometryPass(double alpha);
 static void skyboxPass();
 static void deferredPass();
+static void renderTexture(GLuint texture);
 
 
-// renders orange dice to screen
+// renders orange pyramid to screen
 static void TEMPORARY()
 {
     static GLfloat vertices[] =
@@ -154,6 +155,8 @@ u8 renderPipelineInit()
     if(!loadGBuffer())
     {
         glDeleteProgram(deferredShader);
+        glDeleteProgram(textureShader);
+        glDeleteProgram(skyboxShader);
         return 0;
     }
 
@@ -193,6 +196,8 @@ u8 renderPipelineInit()
         glDeleteBuffers(1, &deferredVAO);
         glDeleteBuffers(1, &deferredVBO);
         glDeleteProgram(deferredShader);
+        glDeleteProgram(textureShader);
+        glDeleteProgram(skyboxShader);
 
         return 0;
     }
@@ -216,6 +221,7 @@ void renderPipelineCleanup()
     glDeleteBuffers(1, &deferredVAO);
     glDeleteBuffers(1, &deferredVBO);
     glDeleteProgram(deferredShader);
+    glDeleteProgram(textureShader);
 
     textureCleanup();
 }
@@ -258,11 +264,21 @@ static u8 loadShaders()
         return 0;
     }
 
+    if(!shaderProgram(&textureShader, "../src/shader/texture.vert", NULL, "../src/shader/texture.frag"))
+    {
+        ERROR("shaderProgram()");
+        glDeleteProgram(deferredShader);
+        glDeleteProgram(skyboxShader);
+        return 0;
+    }
+
     locNormal = glGetUniformLocation(deferredShader, "gNormal");
     locAlbedo = glGetUniformLocation(deferredShader, "gAlbedo");
     locDepth = glGetUniformLocation(deferredShader, "gDepth");
 
     locSkyboxProjView = glGetUniformLocation(skyboxShader, "viewProj");
+
+    locTexture = glGetUniformLocation(textureShader, "aTexture");
 
     return 1;
 }
@@ -333,7 +349,7 @@ static u8 loadGBuffer()
 static void geometryPass(double alpha)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClearColor(0.f, 0.f, 0.f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
@@ -385,6 +401,22 @@ static void deferredPass()
     glUniform1i(locNormal, 1);
     glUniform1i(locAlbedo, 2);
     glUniform1i(locDepth, 3);
+
+    glBindVertexArray(deferredVAO);
+    glDisable(GL_DEPTH_TEST);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+
+static void renderTexture(GLuint texture)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glUseProgram(textureShader);
 
     glBindVertexArray(deferredVAO);
     glDisable(GL_DEPTH_TEST);
