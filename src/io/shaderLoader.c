@@ -25,48 +25,49 @@ u8 shaderProgram(GLuint* shader, const GLchar* vertPath, const GLchar* geomPath,
     int compileStatus;
     char infoLog[512];
 
-    GLuint vert;
+    GLuint vert = 0;
+    GLuint geom = 0;
+    GLuint frag = 0;
+
     vert = glCreateShader(GL_VERTEX_SHADER);
+    if(!vert) goto _error;
     glShaderSource(vert, 1, &vertSrc, NULL);
     glCompileShader(vert);
     glGetShaderiv(vert, GL_COMPILE_STATUS, &compileStatus);
     if(!compileStatus)
     {
         glGetShaderInfoLog(vert, 512, NULL, infoLog);
+        DBG("[!] vertex shader compilation failed:\n");
         DBG(infoLog);
-        glDeleteShader(vert);
         goto _error;
     }
 
-    GLuint geom;
     if(geomPath)
     {
         geom = glCreateShader(GL_GEOMETRY_SHADER);
+        if(!geom) goto _error;
         glShaderSource(geom, 1, &geomSrc, NULL);
         glCompileShader(geom);
         glGetShaderiv(geom, GL_COMPILE_STATUS, &compileStatus);
         if(!compileStatus)
         {
             glGetShaderInfoLog(geom, 512, NULL, infoLog);
+            DBG("[!] geometry shader compilation failed:\n");
             DBG(infoLog);
-            glDeleteShader(vert);
-            glDeleteShader(geom);
             goto _error;
         }
     }
 
-    GLuint frag;
     frag = glCreateShader(GL_FRAGMENT_SHADER);
+    if(!frag) goto _error;
     glShaderSource(frag, 1, &fragSrc, NULL);
     glCompileShader(frag);
     glGetShaderiv(vert, GL_COMPILE_STATUS, &compileStatus);
     if(!compileStatus)
     {
         glGetShaderInfoLog(frag, 512, NULL, infoLog);
+        DBG("[!] fragment shader compilation failed:\n");
         DBG(infoLog);
-        glDeleteShader(vert);
-        if(geomPath) glDeleteShader(geom);
-        glDeleteShader(frag);
         goto _error;
     }
 
@@ -76,19 +77,23 @@ u8 shaderProgram(GLuint* shader, const GLchar* vertPath, const GLchar* geomPath,
     glAttachShader(*shader, frag);
     glLinkProgram(*shader);
     glGetProgramiv(*shader, GL_LINK_STATUS, &compileStatus);
-
-    glDeleteShader(vert);
-    if(geomPath) glDeleteShader(geom);
-    glDeleteShader(frag);
-    
     if(!compileStatus)
     {
         glDeleteProgram(*shader);
+        DBG("[!] failed to link shader\n");
         goto _error;
     }
 
+    glDeleteShader(vert);
     free((void*)vertSrc);
-    if(geomPath) free((void*)geomSrc);
+    
+    if(geom)
+    {
+        glDeleteShader(geom);
+        free((void*)geomSrc);
+    }
+
+    glDeleteShader(frag);
     free((void*)fragSrc);
 
     return 1;
@@ -97,6 +102,11 @@ _error:
     if(vertSrc) free((void*)vertSrc);
     if(geomSrc) free((void*)geomSrc);
     if(fragSrc) free((void*)fragSrc);
+
+    if(vert) glDeleteProgram(vert);
+    if(geom) glDeleteProgram(geom);
+    if(frag) glDeleteProgram(frag);
+
     return 0;
 }
 

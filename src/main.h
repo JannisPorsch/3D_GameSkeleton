@@ -35,7 +35,7 @@ typedef uint64_t    u64;
 #ifdef _DEBUG
     #include <stdio.h>
     #define DBG(string) fprintf(stdout, string)
-    #define ERROR(string) fprintf(stderr, "[!] ERROR: %s failed in: %s - line %d\n", string, __FILE__, __LINE__)
+    #define ERROR(string) fprintf(stderr, "[!] ERROR: %s failed in: %s - line %d\n", (string), __FILE__, __LINE__)
 
 #else
     #define DBG(string)

@@ -16,14 +16,14 @@ static const int CHANNELS[4] =
 };
 
 
-static u8 loadSkybox(GLuint* retval);
+static u8 loadSkybox();
 
 
 
 
 u8 textureInit()
 {
-    if(!loadSkybox(&texture_skybox))
+    if(!loadSkybox())
     {
         ERROR("loadSkybox()");
         return 0;
@@ -41,7 +41,7 @@ void textureCleanup()
 
 
 
-static u8 loadSkybox(GLuint* skyBox)
+static u8 loadSkybox()
 {
     const char* faces[6] =
     {
@@ -53,13 +53,14 @@ static u8 loadSkybox(GLuint* skyBox)
         "../res/skybox/back.jpg"
     };
 
-    glGenTextures(1, skyBox);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, *skyBox);
+    glGenTextures(1, &texture_skybox);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texture_skybox);
 
+    u8 *data;
     int width, height, nrChannels;
     for (unsigned int i = 0; i < 6; i++)
     {
-        u8 *data = stbi_load(faces[i], &width, &height, &nrChannels, 0);
+        data = stbi_load(faces[i], &width, &height, &nrChannels, 0);
         if (data)
         {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, CHANNELS[nrChannels - 1], GL_UNSIGNED_BYTE, data);
@@ -67,7 +68,7 @@ static u8 loadSkybox(GLuint* skyBox)
         }
         else
         {
-            glDeleteTextures(1, skyBox);
+            glDeleteTextures(1, &texture_skybox);
             return 0;
         }
     }
